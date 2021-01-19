@@ -10,6 +10,34 @@ host: "PhaseOne.local"
 basePath: "/"
 schemes:
 - "http"
+parameters:
+  host:
+    name: "Host"
+    type: "string"
+    in: "header"
+    description: "The hostname of the digital back"
+    default: "PhaseOne.local."
+    required: true
+  sessionId:
+    name: "sessionID"
+    type: "integer"
+    in: "query"
+    description: "The integer id of the session created from /connectToService"
+    required: true
+  imageId:
+    name: "id"
+    type: "string"
+    in: "query"
+    description: "The image ID, found in the variants array of getServerChanges"
+    required: true
+  timestamp:
+    name: "timestamp"
+    type: "integer"
+    in: "query"
+    description: "Unix timestamp in seconds"
+    default: 632680049
+    required: true
+  
 paths:
   /connectToService: 
     get: 
@@ -20,13 +48,8 @@ paths:
         '200':
           description: Integer ID of the session
       parameters: 
-        - 
-          name: "Host"
-          type: "string"
-          in: "header"
-          description: "the hostname of the digital back"
-          default: "PhaseOne.local."
-          required: true
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/timestamp'
         - 
           name: "Authorization"
           type: "string"
@@ -66,33 +89,15 @@ paths:
           in: "query"
           description: "Allow listing and getting images, or just the capture interface"
           required: true
-        - 
-          name: "timestamp"
-          type: "integer"
-          in: "query"
-          description: "Unix timestamp in seconds"
-          required: true
   /getServerChanges: 
     get: 
       summary: "Returns a big json of data about the digital back"
       parameters: 
-        - 
-          name: "Host"
-          type: "string"
-          in: "header"
-          description: "The hostname of the digital back"
-          default: "PhaseOne.local."
-          required: true
-        - 
-          name: "sessionID"
-          type: "integer"
-          in: "query"
-          description: "The integer id of the session created from /connectToService"
-          required: true
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/sessionId'
       responses: 
         200: 
           description: "Information about the digital Back"
-          example: 
           schema: 
             type: "object"
             properties: 
@@ -144,4 +149,184 @@ paths:
               revision: 
                 type: "string"
                 description: ""
+  /getImageMetadata: 
+    get: 
+      summary: "Gets the EXIF metadata for a specific image id."
+      parameters: 
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/imageId'
+        - $ref: '#/parameters/sessionId'
+        - $ref: '#/parameters/timestamp'
+      responses: 
+        200: 
+          description: ""
+          schema: 
+            type: "object"
+            properties: 
+              kVariantKey_VariantID: 
+                type: "string"
+                description: ""
+              kVariantKey_ImageID: 
+                type: "string"
+                description: ""
+              kVariantKey_VariantName: 
+                type: "string"
+                description: ""
+              kVariantKey_VariantNo: 
+                type: "number"
+                description: ""
+              kVariantKey_ChangeType: 
+                type: "string"
+                description: ""
+              kVariantKey_Properties: 
+                type: "object"
+                properties: 
+                  kVariantProperty_Editable: 
+                    type: "boolean"
+                    description: ""
+                  kVariantProperty_ISO: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_ShutterSpeed: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_Aperture: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_FocalLength: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_ImageCompression: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_WhiteBalanceMode: 
+                    type: "string"
+                    description: ""
+                  kVariantProperty_Width: 
+                    type: "number"
+                    description: ""
+                  kVariantProperty_Height: 
+                    type: "number"
+                    description: ""
+                  kVariantProperty_Rating: 
+                    type: "number"
+                    description: ""
+                  kVariantProperty_ExposureDate: 
+                    type: "number"
+                    description: ""
+  /getImage: 
+    get: 
+      summary: "Get an (part?) of an image from the digital back."
+      produces: 
+       - binary
+      responses:
+        200:
+          description: OK
+      parameters: 
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/imageId'
+        - $ref: '#/parameters/sessionId'
+        - 
+          name: "height"
+          type: "integer"
+          in: "query"
+          description: "The height of the image to return"
+          required: true
+        - 
+          name: "bottom"
+          type: "integer"
+          in: "query"
+          description: "???"
+          default: 0
+          required: true
+
+        - 
+          name: "width"
+          type: "integer"
+          in: "query"
+          description: "The width of the image to return"
+          required: true
+        - 
+          name: "left"
+          type: "integer"
+          in: "query"
+          default: 0
+          description: "???"
+          required: true
+        - 
+          name: "top"
+          type: "integer"
+          in: "query"
+          description: "???"
+          default: 0
+          required: true
+        - 
+          name: "right"
+          type: "string"
+          in: "query"
+          default: 0
+          description: "???"
+          required: true
+        - 
+          name: "overlay"
+          type: "integer"
+          in: "query"
+          default: 0
+          description: ""
+          required: true
+  /setProperty: 
+    get: 
+      summary: "Sets any rw property on the digital back"
+      responses:
+        200:
+          description: "Returns 200, but no content ¯\_(ツ)_/¯"
+      description: "The property IDs and allowed values are found in /getServerChanges."
+      parameters: 
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/imageId'
+        - $ref: '#/parameters/timestamp'
+        - 
+          name: "propertyValue"
+          type: "string"
+          in: "query"
+          description: "The value to set for this property"
+          required: true
+        - 
+          name: "objectID"
+          type: "string"
+          in: "query"
+          description: "The id of the object where this property is"
+          required: true
+        - 
+          name: "propertyID"
+          type: "string"
+          in: "query"
+          description: "The id of the property"
+          required: true
+        - 
+          name: "objectType"
+          type: "string"
+          in: "query"
+          description: "The type of the object where this property us"
+          required: true
+  /capture: 
+    get: 
+      summary: "Captures an image with the digital back!"
+      parameters: 
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/sessionId'
+        - $ref: '#/parameters/timestamp'
+        - 
+          name: "cameraID"
+          type: "string"
+          in: "query"
+          description: "The ID of the actual digital back object"
+          required: true
+      responses: 
+        200: 
+          description: "Returns 0 if the capture was succesful"
+          schema: 
+            type: "integer"
+
+
 
