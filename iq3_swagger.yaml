@@ -1,0 +1,147 @@
+swagger: "2.0"
+info:
+  description: "Describes the HTTP Interface to a Phase One Digital Back"
+  version: "1.0.0"
+  title: "Phase One Capture Server API"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "PhaseOne.local"
+basePath: "/"
+schemes:
+- "http"
+paths:
+  /connectToService: 
+    get: 
+      summary: "Creates a new session ID to control the back"
+      produces:
+        - text/html
+      responses: 
+        '200':
+          description: Integer ID of the session
+      parameters: 
+        - 
+          name: "Host"
+          type: "string"
+          in: "header"
+          description: "the hostname of the digital back"
+          default: "PhaseOne.local."
+          required: true
+        - 
+          name: "Authorization"
+          type: "string"
+          in: "header"
+          description: "Used only with this endpoint. base64(Guest:)"
+          default: "Basic R3Vlc3Q6"
+          required: true
+        - 
+          name: "protocolVersion"
+          type: "string"
+          in: "query"
+          description: "Was 3.1 with an IQ3 Achro"
+          default: 3.1
+          required: true
+        - 
+          name: "deviceName"
+          type: "string"
+          in: "query"
+          description: "Your device's hostname"
+          required: true
+        - 
+          name: "deviceIdentifier"
+          type: "string"
+          in: "query"
+          description: "Your devices's UUID"
+          required: true
+        - 
+          name: "dataFormat"
+          type: "string"
+          in: "query"
+          description: "The data format to use, json is default"
+          default: json
+          required: true
+        - 
+          name: "captureControlsOnly"
+          type: "integer"
+          in: "query"
+          description: "Allow listing and getting images, or just the capture interface"
+          required: true
+        - 
+          name: "timestamp"
+          type: "integer"
+          in: "query"
+          description: "Unix timestamp in seconds"
+          required: true
+  /getServerChanges: 
+    get: 
+      summary: "Returns a big json of data about the digital back"
+      parameters: 
+        - 
+          name: "Host"
+          type: "string"
+          in: "header"
+          description: "The hostname of the digital back"
+          default: "PhaseOne.local."
+          required: true
+        - 
+          name: "sessionID"
+          type: "integer"
+          in: "query"
+          description: "The integer id of the session created from /connectToService"
+          required: true
+      responses: 
+        200: 
+          description: "Information about the digital Back"
+          example: 
+          schema: 
+            type: "object"
+            properties: 
+              variants: 
+                type: "array"
+                items: 
+                  type: "string"
+                  description: ""
+              objects: 
+                type: "array"
+                items: 
+                  type: "object"
+                  properties: 
+                    kObjectKey_ObjectType: 
+                      type: "string"
+                      description: ""
+                    kObjectKey_ObjectID: 
+                      type: "string"
+                      description: ""
+                    kObjectKey_ChangeType: 
+                      type: "string"
+                      description: ""
+                    kObjectKey_ObjectName: 
+                      type: "string"
+                      description: ""
+                    kObjectKey_Properties: 
+                      type: "array"
+                      items: 
+                        type: "object"
+                        properties: 
+                          kObjectProperty_PropertyID: 
+                            type: "string"
+                            description: ""
+                          kObjectProperty_PropertyName: 
+                            type: "string"
+                            description: ""
+                          kObjectProperty_ValueType: 
+                            type: "string"
+                            description: ""
+                          kObjectProperty_Permissions: 
+                            type: "string"
+                            description: ""
+                          kObjectProperty_Values: 
+                            type: "string"
+                            description: ""
+                          kObjectProperty_CurrentValue: 
+                            type: "string"
+                            description: ""
+              revision: 
+                type: "string"
+                description: ""
+
