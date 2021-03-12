@@ -11,7 +11,10 @@ BASE_HEADERS = {'Host': 'PhaseOne.local.'}
 def client():
     c = httpx.AsyncClient(base_url=HOSTNAME, headers=BASE_HEADERS)
     yield c
-    asyncio.run(c.aclose())
+    try:
+        asyncio.run(c.aclose())
+    except:
+        pass
 
 
 def pytest_configure():

@@ -53,8 +53,10 @@ async def test_set_property(client):
     await api.set_property(client, pytest.session, iso.name, 
         max_iso, OBJ_ID, 'kCameraProperty_ExposureISO', api.ObjectType.camera.value)
     data = await api.list_properties(client, pytest.session, OBJ_ID)
-    iso_new = next(filter(lambda x: x.name == 'ISO', rw_props)) 
-    assert iso_new == max_iso
-    assert iso != iso_new
+    iso_new = next(filter(lambda x: x.name == 'ISO', data)) 
+    assert iso_new.possible_values[-1] == max_iso
     await api.set_property(client, pytest.session, iso.name, 
-        iso, OBJ_ID, 'kCameraProperty_ExposureISO', api.ObjectType.camera.value)
+        iso.value, OBJ_ID, 'kCameraProperty_ExposureISO', api.ObjectType.camera.value)
+    data = await api.list_properties(client, pytest.session, OBJ_ID)
+    iso_reset = next(filter(lambda x: x.name == 'ISO', data))
+    assert iso_reset.value == iso.value

@@ -114,7 +114,7 @@ async def list_properties(client: httpx.Client, session_id: int, object_id: str)
                         prop_id=prop['kObjectProperty_PropertyID'],
                         permissions=prop['kObjectProperty_Permissions'],
                         value=prop['kObjectProperty_CurrentValue'],
-                        possible_values=prop['kObjectProperty_Values'].split('#') if prop['kObjectProperty_Values'] else ''
+                        possible_values=prop['kObjectProperty_Values'].split('#')[:-1] if prop['kObjectProperty_Values'] else ''
                     ))
                 return props
     except KeyError:
@@ -140,11 +140,7 @@ async def set_property(client: httpx.Client, session_id: int, prop: Property,
         'propertyID': propertyID,
         'objectType': objectType
     }
-    r: httpx.Response = await client.get(path, params=params)
-    if r.status_code != 200:
-        raise SetPropertyError(f"Unable to set the property {prop} on host {client.base_url}!")
-
-
-# if __name__ == '__main__':
-#     data = asyncio.run(connect_get_properties('http://PhaseOne.local:3300'))
-#     print(data)
+    try:
+        r: httpx.Response = await client.get(path, params=params)
+    except httpx.RemoteProtocolError:
+        pass # This is uh, expected because the back is like okay cool a GET request, the HTTP standard totally doesn't require me to respond to that...
