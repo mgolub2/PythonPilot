@@ -19,3 +19,4 @@ def client():
 
 def pytest_configure():
     pytest.session = None
+    pytest.initial_props = None

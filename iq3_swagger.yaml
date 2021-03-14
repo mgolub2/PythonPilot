@@ -324,7 +324,7 @@ paths:
           required: true
       responses: 
         200: 
-          description: "Returns 0 if the capture was succesful"
+          description: "Returns 0 if the capture was successful"
           schema: 
             type: "integer"
 

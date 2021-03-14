@@ -1,4 +1,5 @@
 import asyncio
+from pythonpilot.tests.test_api import OBJ_ID
 import uuid
 from typing import List, Dict
 
@@ -19,8 +20,13 @@ class SessionError(Exception):
     pass
 
 
+class CaptureError(Exception):
+    pass
+
+
 class DBInformationError(Exception):
     pass
+
 
 class SetPropertyError(Exception):
     pass
@@ -39,17 +45,24 @@ class DB(object):
         self.properties: Dict[Property] = None
         self.object_id = f"{object_id}-3"
         self.object_type = ObjectType.camera.value
+        self.properties_dirty = True
 
     def refresh_session_id(self):
         self.session_id = asyncio.run(get_session(self.client, self.capture_only))
 
-    def refresh_db_properties(self):
-        try:
-            properties = asyncio.run(list_properties(self.client, self.session_id))
-        except ValueError:
-            self.refresh_session_id()
-            properties = asyncio.run(list_properties(self.client, self.session_id))
-        self.properties = {prop.name: prop for prop in properties}
+    def refresh_db_properties(self) -> bool:
+        if self.properties_dirty:
+            try:
+                db_data = asyncio.run(get_db_information(self.client, self.session_id))
+            except httpx.ReadTimeout:
+                self.refresh_session_id()
+                db_data = asyncio.run(get_db_information(self.client, self.session_id))
+            properties = list_properties(db_data, self.object_id)
+            self.properties = {prop.name: prop for prop in properties}
+            self.properties_dirty = False
+            return True
+        else:
+            return False
 
     def set_property(self, property: str, value: str):
         try:
@@ -58,9 +71,21 @@ class DB(object):
                 raise SetPropertyError(f"Property {property} permissions not set to {filter.RW.value}")
             asyncio.run(set_property(self.client, self.session_id, property,
             value, self.object_id, trg_prop.prop_id, self.object_type))
+            self.properties_dirty = True
         except KeyError:
             raise KeyError(f"Property {property} not found in self.properties")
+        except httpx.ReadTimeout: 
+            self.refresh_session_id()
+            asyncio.run(set_property(self.client, self.session_id, property,
+            value, self.object_id, trg_prop.prop_id, self.object_type))
 
+    def capture(self) -> bool:
+        try:
+            return asyncio.run(capture(self.client, self.session_id, self.object_id)) == 0
+        except httpx.ReadTimeout:
+            self.refresh_session_id()
+            return asyncio.run(capture(self.client, self.session_id, self.object_id)) == 0
+        
 
 async def get_session(client: httpx.Client, capture_only: int = 1, retry: bool = True) -> int:
     """
@@ -95,18 +120,17 @@ async def get_db_information(client: httpx.Client, session_id: int) -> dict:
     params = {
         'sessionID': session_id
     }
-    r: httpx.Response = await client.get(path, params=params, timeout=10)
+    r: httpx.Response = await client.get(path, params=params)
     try:
         return r.json()
     except ValueError:
         raise DBInformationError("Could not get information JSON from Digital Back.")
 
 
-async def list_properties(client: httpx.Client, session_id: int, object_id: str) -> List[Property]:
-    data = await get_db_information(client, session_id)
+def list_properties(db_info_data, object_id: str) -> List[Property]:
     props = []
     try:
-        for obj in data['objects']:
+        for obj in db_info_data['objects']:
             if obj.get('kObjectKey_ObjectID') == object_id:
                 for prop in obj['kObjectKey_Properties']:
                     props.append(Property(
@@ -119,11 +143,6 @@ async def list_properties(client: httpx.Client, session_id: int, object_id: str)
                 return props
     except KeyError:
         raise DBInformationError("Error creating properties from digital back json.")
-
-
-async def connect_get_properties(client: httpx.Client) -> List[Property]:
-    session = await get_session(client, capture_only=1)
-    return await list_properties(client, session)
 
 
 async def filter_props(props: List[Property], filter: Permission):
@@ -144,3 +163,15 @@ async def set_property(client: httpx.Client, session_id: int, prop: Property,
         r: httpx.Response = await client.get(path, params=params)
     except httpx.RemoteProtocolError:
         pass # This is uh, expected because the back is like okay cool a GET request, the HTTP standard totally doesn't require me to respond to that...
+
+
+async def capture(client: httpx.Client, session_id: int, cameraID: str) -> bool:
+    path = '/capture'
+    params = {
+        'cameraID': cameraID,
+    }
+    try:
+        r: httpx.Response = await client.get(path, params=params)
+        return int(r.text) == 0
+    except ValueError:
+        raise CaptureError(f"Unexpected response when attempting capture: {r.text}. Session Expired?")
