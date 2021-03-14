@@ -1,5 +1,4 @@
 import asyncio
-from pythonpilot.tests.test_api import OBJ_ID
 import uuid
 from typing import List, Dict
 
@@ -145,7 +144,7 @@ def list_properties(db_info_data, object_id: str) -> List[Property]:
         raise DBInformationError("Error creating properties from digital back json.")
 
 
-async def filter_props(props: List[Property], filter: Permission):
+def filter_props(props: List[Property], filter: Permission):
     return [i for i in props if i.permissions == filter.RW.value]
 
 
