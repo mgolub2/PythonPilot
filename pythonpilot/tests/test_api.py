@@ -61,6 +61,7 @@ async def test_set_property(client):
     iso_reset = next(filter(lambda x: x.name == 'ISO', data))
     assert iso_reset.value == iso.value
 
+
 @pytest.mark.asyncio
 @pytest.mark.dependency(depends=['test_get_session_id'])
 async def test_capture(client):

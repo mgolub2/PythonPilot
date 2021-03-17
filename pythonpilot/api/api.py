@@ -42,7 +42,7 @@ class DB(object):
         self.client = httpx.Client(base_url=self.host, headers=DEFAULT_HEADERS)
         self.session_id = asyncio.run(get_session(self.client, self.capture_only))
         self.properties: Dict[Property] = None
-        self.object_id = f"{object_id}-3"
+        self.object_id = f"{object_id}"
         self.object_type = ObjectType.camera.value
         self.properties_dirty = True
 
@@ -115,6 +115,11 @@ async def get_session(client: httpx.Client, capture_only: int = 1, retry: bool =
 
 
 async def get_db_information(client: httpx.Client, session_id: int) -> dict:
+    """
+    Queries capture pilot for information, gets a giant JSON in response, which may contain
+    info several controlable devices. Will timeout if called twice in a row without anything changing 
+    on the DB. 
+    """
     path = '/getServerChanges'
     params = {
         'sessionID': session_id
@@ -127,6 +132,10 @@ async def get_db_information(client: httpx.Client, session_id: int) -> dict:
 
 
 def list_properties(db_info_data, object_id: str) -> List[Property]:
+    """
+    Converts a json from capture pilot to a list of Properties filtered by the object_id of the
+    device you want to control. Digital backs seem to be the typically {last four of the serial}-3
+    """
     props = []
     try:
         for obj in db_info_data['objects']:
